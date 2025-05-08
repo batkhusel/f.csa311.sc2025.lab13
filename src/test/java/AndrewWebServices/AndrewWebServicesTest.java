@@ -1,48 +1,48 @@
 package AndrewWebServices;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import org.junit.Before;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 import org.junit.Test;
 
 public class AndrewWebServicesTest {
-    Database database;
-    RecSys recommender;
-    PromoService promoService;
-    AndrewWebServices andrewWebService;
+    @Test
+    public void testLogInWithFakeDatabase() {
+        InMemoryDatabase fakeDb = new InMemoryDatabase();
+        fakeDb.addUser("testUser", 1234);
 
-    @Before
-    public void setUp() {
-        // You need to use some mock objects here
-        database = new Database(); // We probably don't want to access our real database...
-        recommender = new RecSys();
-        promoService = new PromoService();
+        RecSys dummyRecSys = account -> "dummy";  // Dummy implementation
+        PromoService dummyPromo = email -> {};     // Dummy implementation
 
-        andrewWebService = new AndrewWebServices(database, recommender, promoService);
+        AndrewWebServices aws = new AndrewWebServices(fakeDb, dummyRecSys, dummyPromo);
+
+        assertTrue(aws.logIn("testUser", 1234));
+        assertFalse(aws.logIn("testUser", 4321));
+        assertFalse(aws.logIn("unknownUser", 1234));
     }
 
     @Test
-    public void testLogIn() {
-        // This is taking way too long to test
-        assertTrue(andrewWebService.logIn("Scotty", 17214));
+    public void testGetRecommendationWithStub() {
+        Database dummyDb = new Database(); // Actual class, but unused in this test
+        RecSys stubRec = new StubRecSys();
+        PromoService dummyPromo = email -> {};
+
+        AndrewWebServices aws = new AndrewWebServices(dummyDb, stubRec, dummyPromo);
+
+        String result = aws.getRecommendation("anyUser");
+        assertEquals("StubMovie", result);
     }
 
     @Test
-    public void testGetRecommendation() {
-        // This is taking way too long to test
-        assertEquals("Animal House", andrewWebService.getRecommendation("Scotty"));
-    }
+    public void testSendPromoEmailWithMock() {
+        Database dummyDb = new Database();
+        RecSys dummyRec = account -> "dummy";
 
-    @Test
-    public void testSendEmail() {
-        // How should we test sendEmail() when it doesn't have a return value?
-        // Hint: is there something from Mockito that seems useful here?
-    }
+        PromoService promoMock = mock(PromoService.class);
 
-    @Test
-    public void testNoSendEmail() {
-        // How should we test that no email has been sent in certain situations (like right after logging in)?
-        // Hint: is there something from Mockito that seems useful here?
+        AndrewWebServices aws = new AndrewWebServices(dummyDb, dummyRec, promoMock);
+
+        aws.sendPromoEmail("test@example.com");
+
+        verify(promoMock).mailTo("test@example.com");
     }
 }
